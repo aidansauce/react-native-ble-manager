@@ -38,10 +38,12 @@ import static android.bluetooth.BluetoothProfile.GATT;
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
 
 
-class BleManager extends ReactContextBaseJavaModule implements ActivityEventListener {
+public class BleManager extends ReactContextBaseJavaModule implements ActivityEventListener {
 
 	public static final String LOG_TAG = "ReactNativeBleManager";
 	private static final int ENABLE_REQUEST = 539;
+
+	private static BleManager instance;
 
 	private class BondRequest {
 		private String uuid;
@@ -78,6 +80,12 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		this.reactContext = reactContext;
 		reactContext.addActivityEventListener(this);
 		Log.d(LOG_TAG, "BleManager created");
+
+		BleManager.instance = this;
+	}
+
+	public static BleManager getInstance() {
+		return instance;
 	}
 
 	@Override
@@ -85,7 +93,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		return "BleManager";
 	}
 
-	private BluetoothAdapter getBluetoothAdapter() {
+	public BluetoothAdapter getBluetoothAdapter() {
 		if (bluetoothAdapter == null) {
 			BluetoothManager manager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 			bluetoothAdapter = manager.getAdapter();
@@ -93,7 +101,7 @@ class BleManager extends ReactContextBaseJavaModule implements ActivityEventList
 		return bluetoothAdapter;
 	}
 
-	private BluetoothManager getBluetoothManager() {
+	public BluetoothManager getBluetoothManager() {
 		if (bluetoothManager == null) {
 			bluetoothManager = (BluetoothManager) context.getSystemService(Context.BLUETOOTH_SERVICE);
 		}
