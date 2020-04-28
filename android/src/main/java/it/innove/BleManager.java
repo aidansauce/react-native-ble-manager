@@ -389,6 +389,10 @@ public class BleManager extends ReactContextBaseJavaModule implements ActivityEv
 		return peripherals.get(address);
 	}
 
+	public Peripheral getPeripheral(String deviceUuid) {
+		return peripherals.get(deviceUuid);
+	}
+
 	public Peripheral getPeripheral(BluetoothDevice device) {
 		String address = device.getAddress();
 		return peripherals.get(address);

@@ -29,7 +29,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static android.os.Build.VERSION_CODES.LOLLIPOP;
@@ -59,6 +61,24 @@ public class Peripheral extends BluetoothGattCallback {
 	private Callback requestMTUCallback;
 
 	private List<byte[]> writeQueue = new ArrayList<>();
+
+//	private class NativeService {
+//
+//		private UUID serviceUuid;
+//		private BluetoothGattCallback callback;
+//
+//		public NativeService(UUID service, BluetoothGattCallback callback) {
+//			this.serviceUuid = service;
+//			this.callback = callback;
+//		}
+//	}
+
+	public interface NativeServiceHandler {
+		void registerResult(Object... args);
+		void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic);
+	}
+
+	private final Map<UUID, NativeServiceHandler> nativeOnlyServices = new LinkedHashMap<>();
 
 	public Peripheral(BluetoothDevice device, int advertisingRSSI, byte[] scanRecord, ReactContext reactContext) {
 		this.device = device;
@@ -336,6 +356,11 @@ public class Peripheral extends BluetoothGattCallback {
 	public void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic) {
 		super.onCharacteristicChanged(gatt, characteristic);
 
+		if (nativeOnlyServices.containsKey(characteristic.getService().getUuid())) {
+			nativeOnlyServices.get(characteristic.getService().getUuid()).onCharacteristicChanged(gatt, characteristic);
+			return;
+		}
+
 		byte[] dataValue = characteristic.getValue();
 		Log.d(BleManager.LOG_TAG, "Read: " + BleManager.bytesToHex(dataValue) + " from peripheral: " + device.getAddress());
 
@@ -490,6 +515,17 @@ public class Peripheral extends BluetoothGattCallback {
 	public void registerNotify(UUID serviceUUID, UUID characteristicUUID, Callback callback) {
 		Log.d(BleManager.LOG_TAG, "registerNotify");
 		this.setNotify(serviceUUID, characteristicUUID, true, callback);
+	}
+
+	public void registerNotify(UUID serviceUUID, UUID characteristicUUID, final NativeServiceHandler callback) {
+		Log.d(BleManager.LOG_TAG, "registerNotify");
+		this.setNotify(serviceUUID, characteristicUUID, true, new Callback() {
+			@Override
+			public void invoke(Object... args) {
+				callback.registerResult(args);
+			}
+		});
+		nativeOnlyServices.put(serviceUUID, callback);
 	}
 
 	public void removeNotify(UUID serviceUUID, UUID characteristicUUID, Callback callback) {
@@ -774,6 +810,11 @@ public class Peripheral extends BluetoothGattCallback {
 
 			requestMTUCallback = null;
 		}
+	}
+
+	public BluetoothGattCharacteristic findWritableCharacteristic(UUID serviceUUID, UUID characteristicUUID, int writeType) {
+		BluetoothGattService service = gatt.getService(serviceUUID);
+		return findWritableCharacteristic(service, characteristicUUID, writeType);
 	}
 
 	// Some peripherals re-use UUIDs for multiple characteristics so we need to check the properties
