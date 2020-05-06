@@ -62,20 +62,10 @@ public class Peripheral extends BluetoothGattCallback {
 
 	private List<byte[]> writeQueue = new ArrayList<>();
 
-//	private class NativeService {
-//
-//		private UUID serviceUuid;
-//		private BluetoothGattCallback callback;
-//
-//		public NativeService(UUID service, BluetoothGattCallback callback) {
-//			this.serviceUuid = service;
-//			this.callback = callback;
-//		}
-//	}
-
 	public interface NativeServiceHandler {
 		void registerResult(Object... args);
 		void onCharacteristicChanged(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic);
+		void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status);
 	}
 
 	private final Map<UUID, NativeServiceHandler> nativeOnlyServices = new LinkedHashMap<>();
@@ -398,6 +388,11 @@ public class Peripheral extends BluetoothGattCallback {
 	public void onCharacteristicWrite(BluetoothGatt gatt, BluetoothGattCharacteristic characteristic, int status) {
 		super.onCharacteristicWrite(gatt, characteristic, status);
 
+		if (nativeOnlyServices.containsKey(characteristic.getService().getUuid())) {
+			nativeOnlyServices.get(characteristic.getService().getUuid()).onCharacteristicWrite(gatt, characteristic, status);
+			return;
+		}
+		
 		if (writeCallback != null) {
 
 			if (writeQueue.size() > 0) {
