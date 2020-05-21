@@ -654,7 +654,7 @@ public class Peripheral extends BluetoothGattCallback {
 	public boolean doWrite(BluetoothGattCharacteristic characteristic, byte[] data) {
 		characteristic.setValue(data);
 
-		if (!gatt.writeCharacteristic(characteristic)) {
+		if (gatt == null || !gatt.writeCharacteristic(characteristic)) {
 			Log.d(BleManager.LOG_TAG, "Error on doWrite");
 			return false;
 		}
